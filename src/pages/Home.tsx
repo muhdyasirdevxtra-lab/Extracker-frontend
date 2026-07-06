@@ -6,9 +6,13 @@ import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
 import { 
+  BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell,
+  PieChart, Pie
+} from 'recharts';
+import { 
   FiSearch, FiChevronDown, FiShoppingBag, FiCoffee, 
   FiTrendingDown, FiSmartphone, FiHome, FiHeart, FiMoreHorizontal,
-  FiCreditCard
+  FiCreditCard, FiLock, FiCalendar
 } from 'react-icons/fi';
 import InsightsCard from '../components/InsightsCard';
 
@@ -32,10 +36,12 @@ const CategoryColorMap: Record<string, string> = {
   Others: '#94a3b8'
 };
 
+const PIE_COLORS = ['#e4769c', '#5c73df', '#f3b55a', '#4ade80', '#a78bfa', '#f43f5e', '#94a3b8'];
+
 const IconMap: Record<string, any> = {
   FiCreditCard,
   FiSmartphone,
-  FiDollarSign: FiSmartphone, // mapping
+  FiDollarSign: FiSmartphone,
 };
 
 const Home = () => {
@@ -44,6 +50,9 @@ const Home = () => {
   const [summary, setSummary] = useState<any>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [lastMonthTotal, setLastMonthTotal] = useState(0);
+  const [salaryStatus, setSalaryStatus] = useState<any>(null);
+  const [trendData, setTrendData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
   
   // Salary Modal State
   const [showSalaryModal, setShowSalaryModal] = useState(false);
@@ -52,19 +61,31 @@ const Home = () => {
 
   const fetchData = async () => {
     try {
-      const [summaryRes, expensesRes, insightsRes] = await Promise.all([
+      const [summaryRes, expensesRes, insightsRes, statusRes, trendRes, chartsRes] = await Promise.all([
         api.get('/reports/summary'),
         api.get('/expenses'),
-        api.get('/reports/insights').catch(() => ({ data: { currentMonth: [], lastMonth: [] } }))
+        api.get('/reports/insights').catch(() => ({ data: { currentMonth: [], lastMonth: [] } })),
+        api.get('/salary/status').catch(() => ({ data: { isSalaryDay: false, today: new Date().getDate() } })),
+        api.get('/reports/trend').catch(() => ({ data: [] })),
+        api.get('/reports/charts').catch(() => ({ data: [] }))
       ]);
       setSummary(summaryRes.data);
-      // Bug #2 fix: backend returns flat array, not { expenses: [...] }
       const allExpenses = Array.isArray(expensesRes.data) ? expensesRes.data : (expensesRes.data.expenses || []);
       setExpenses(allExpenses.slice(0, 20));
       
-      // Bug #5: Compute real last month total for the badge
       const lastTotal = (insightsRes.data.lastMonth || []).reduce((s: number, c: any) => s + c.total, 0);
       setLastMonthTotal(lastTotal);
+      setSalaryStatus(statusRes.data);
+
+      // Trend data for bar chart
+      const mappedTrend = (trendRes.data || []).map((t: any) => ({
+        name: t.month,
+        value: t.total
+      }));
+      setTrendData(mappedTrend);
+
+      // Chart data for pie
+      setChartData(chartsRes.data || []);
     } catch (error) {
       console.error('Failed to fetch dashboard data', error);
     }
@@ -83,15 +104,15 @@ const Home = () => {
     
     setSubmittingSalary(true);
     try {
-      // Bug #1 fix: backend expects { amount, month: 1-12, year: number }
       const now = new Date();
       await api.post('/salary', { amount: Number(salaryInput), month: now.getMonth() + 1, year: now.getFullYear() });
       toast.success('Salary updated successfully!');
       setShowSalaryModal(false);
       setSalaryInput('');
-      fetchData(); // Refresh summary
-    } catch (error) {
-      toast.error('Failed to update salary');
+      fetchData();
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || 'Failed to update salary';
+      toast.error(msg);
     } finally {
       setSubmittingSalary(false);
     }
@@ -108,7 +129,6 @@ const Home = () => {
       groups[dateStr].push(exp);
     });
 
-    // Sort dates descending
     const sortedDates = Object.keys(groups).sort((a, b) => new Date(b).getTime() - new Date(a).getTime());
     
     return sortedDates.map(dateStr => ({
@@ -123,6 +143,9 @@ const Home = () => {
     if (isYesterday(date)) return `Yesterday, ${format(date, 'd')}`;
     return format(date, 'EEEE, d');
   };
+
+  const isSalaryDay = salaryStatus?.isSalaryDay || false;
+  const monthlyLimit = summary?.limits?.monthly || 4000;
 
   return (
     <div className="pt-12 px-6 bg-[#f8f9fd] min-h-screen font-sans pb-24">
@@ -175,8 +198,10 @@ const Home = () => {
             </div>
             <div className="h-5 w-[1px] bg-white/20"></div>
             <div>
-              <p className="text-white/60 text-[10px] uppercase tracking-wider">Available</p>
-              <p className="font-semibold text-sm">₹{((summary?.monthlySalary || 0) - (summary?.monthlyExpense || 0)).toLocaleString()}</p>
+              <p className="text-white/60 text-[10px] uppercase tracking-wider">Remaining</p>
+              <p className={`font-semibold text-sm ${(summary?.remainingBalance || 0) < 0 ? 'text-[#ff6b6b]' : ''}`}>
+                ₹{(summary?.remainingBalance || 0).toLocaleString()}
+              </p>
             </div>
             <div className="h-5 w-[1px] bg-white/20"></div>
             <div>
@@ -205,7 +230,7 @@ const Home = () => {
         </div>
       </motion.div>
 
-      {/* Accounts List (Horizontal Scroll) */}
+      {/* Accounts List */}
       <div className="mb-8">
         <h3 className="font-bold text-lg text-slate-800 mb-4">Your Accounts</h3>
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
@@ -236,12 +261,100 @@ const Home = () => {
       {/* AI Insights */}
       <InsightsCard />
 
-      <button 
-        onClick={() => setShowSalaryModal(true)}
-        className="w-full bg-[#5c73df]/10 text-[#5c73df] border border-[#5c73df]/20 p-4 rounded-2xl shadow-sm flex justify-center items-center gap-3 active:scale-95 transition-transform mb-8 font-bold"
-      >
-        Update This Month's Salary
-      </button>
+      {/* Spending Trend Chart */}
+      {trendData.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-6"
+        >
+          <div className="flex justify-between items-center mb-4">
+            <div>
+              <h3 className="font-bold text-slate-800 text-sm">Spending Trend</h3>
+              <p className="text-xs text-slate-400">Last 6 months</p>
+            </div>
+          </div>
+          <div className="h-36 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={trendData} margin={{ top: 5, right: 0, left: -25, bottom: 0 }}>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} dy={8} />
+                <Tooltip
+                  cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                  formatter={(value: any) => `₹${Number(value).toLocaleString()}`}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: '12px' }}
+                />
+                <Bar dataKey="value" radius={[6, 6, 6, 6]} barSize={28}>
+                  {trendData.map((_entry, index) => (
+                    <Cell key={`cell-${index}`} fill={index === trendData.length - 1 ? '#5c73df' : '#e2e8f0'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Category Breakdown Mini Chart */}
+      {chartData.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm mb-6"
+        >
+          <h3 className="font-bold text-slate-800 text-sm mb-3">Category Breakdown</h3>
+          <div className="flex items-center gap-4">
+            <div className="w-24 h-24">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={chartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={22}
+                    outerRadius={40}
+                    paddingAngle={3}
+                    strokeWidth={0}
+                  >
+                    {chartData.map((_entry: any, index: number) => (
+                      <Cell key={`pie-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex-1 grid grid-cols-2 gap-y-1.5 gap-x-3">
+              {chartData.slice(0, 6).map((cat: any, i: number) => (
+                <div key={cat.name} className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}></div>
+                  <span className="text-[11px] text-slate-600 font-medium truncate">{cat.name}</span>
+                  <span className="text-[10px] text-slate-400 font-bold ml-auto">₹{cat.value.toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Salary Update Button */}
+      {isSalaryDay ? (
+        <button 
+          onClick={() => setShowSalaryModal(true)}
+          className="w-full bg-[#5c73df]/10 text-[#5c73df] border border-[#5c73df]/20 p-4 rounded-2xl shadow-sm flex justify-center items-center gap-3 active:scale-95 transition-transform mb-8 font-bold"
+        >
+          <FiCalendar size={18} />
+          Update This Month's Salary
+        </button>
+      ) : (
+        <div className="w-full bg-slate-50 text-slate-400 border border-slate-100 p-4 rounded-2xl flex justify-center items-center gap-3 mb-8 font-bold text-sm">
+          <FiLock size={16} />
+          Salary updates on the 6th
+          {salaryStatus?.today && salaryStatus.today < 6 && (
+            <span className="text-xs text-slate-300 ml-1">({6 - salaryStatus.today} days left)</span>
+          )}
+        </div>
+      )}
 
       {/* Expense List */}
       <div>
@@ -257,7 +370,7 @@ const Home = () => {
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-bold text-slate-800 text-sm">{formatDateHeader(group.date)}</h4>
                 <p className="font-bold text-slate-800 text-sm">
-                  -₹{group.items.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
+                  -₹{group.items.reduce((sum: number, item: any) => sum + item.amount, 0).toLocaleString()}
                 </p>
               </div>
               
@@ -298,7 +411,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* Salary Modal Overlay */}
+      {/* Salary Modal */}
       <AnimatePresence>
         {showSalaryModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
