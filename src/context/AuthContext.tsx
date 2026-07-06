@@ -27,30 +27,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is logged in on mount
-    const checkUser = async () => {
+    // Check if user is logged in from localStorage
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
       try {
-        const { data } = await api.get('/user');
-        setUser(data);
-      } catch (error) {
+        setUser(JSON.parse(savedUser));
+      } catch (e) {
         setUser(null);
-      } finally {
-        setLoading(false);
       }
-    };
-    
-    // As a simple workaround for the requirement "Default login credentials", 
-    // we would actually want to seed the db, but the user is stored in the cookie
-    checkUser();
+    }
+    setLoading(false);
   }, []);
 
   const login = (userData: User) => {
+    localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
   };
 
   const logout = async () => {
     try {
-      await api.post('/auth/logout');
+      localStorage.removeItem('user');
       setUser(null);
     } catch (error) {
       console.error('Logout failed', error);
