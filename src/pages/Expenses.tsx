@@ -1,11 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import api from '../services/api';
 import { format } from 'date-fns';
-import { FiSearch, FiFilter, FiCreditCard } from 'react-icons/fi';
+import { FiSearch, FiCreditCard } from 'react-icons/fi';
 import { motion } from 'framer-motion';
+import CalendarExpenseView from '../components/CalendarExpenseView';
 
 const Expenses = () => {
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [filteredByCalendar, setFilteredByCalendar] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
@@ -23,7 +25,12 @@ const Expenses = () => {
     fetchExpenses();
   }, []);
 
-  const filtered = expenses.filter(e => 
+  const handleFilteredExpenses = useCallback((filtered: any[]) => {
+    setFilteredByCalendar(filtered);
+  }, []);
+
+  // Apply search filter on top of calendar filter
+  const displayExpenses = filteredByCalendar.filter(e =>
     e.remark.toLowerCase().includes(search.toLowerCase()) ||
     e.category.toLowerCase().includes(search.toLowerCase())
   );
@@ -32,12 +39,9 @@ const Expenses = () => {
     <div className="pt-12 px-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-slate-800">All Expenses</h1>
-        <button className="bg-slate-100 p-3 rounded-full text-slate-600">
-          <FiFilter size={20} />
-        </button>
       </div>
 
-      <div className="relative mb-8">
+      <div className="relative mb-5">
         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
           <FiSearch />
         </div>
@@ -50,16 +54,22 @@ const Expenses = () => {
         />
       </div>
 
+      {/* Calendar Expense View */}
+      <CalendarExpenseView
+        expenses={expenses}
+        onFilteredExpenses={handleFilteredExpenses}
+      />
+
       {loading ? (
         <div className="space-y-4 animate-pulse">
           {[1,2,3,4,5].map(i => <div key={i} className="h-20 bg-slate-200 rounded-2xl"></div>)}
         </div>
       ) : (
         <div className="space-y-4">
-          {filtered.length === 0 ? (
-            <p className="text-center text-slate-400 py-10">No expenses found.</p>
+          {displayExpenses.length === 0 ? (
+            <p className="text-center text-slate-400 py-10">No expenses found for this period.</p>
           ) : (
-            filtered.map((expense, i) => (
+            displayExpenses.map((expense, i) => (
               <motion.div 
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
