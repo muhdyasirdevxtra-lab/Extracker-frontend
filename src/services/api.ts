@@ -13,7 +13,7 @@ api.interceptors.request.use((config) => {
     try {
       const user = JSON.parse(userStr);
       if (user._id) {
-        config.headers['user-id'] = user._id;
+        config.headers.set('user-id', user._id);
       }
     } catch (e) {
       // ignore parse error
