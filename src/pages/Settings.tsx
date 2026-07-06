@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
-import { AnimatePresence } from 'framer-motion';
 import PinSetup from '../components/PinSetup';
 import { FiLock } from 'react-icons/fi';
 

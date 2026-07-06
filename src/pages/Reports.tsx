@@ -3,7 +3,7 @@ import api from '../services/api';
 import {
   PieChart, Pie, Cell, ResponsiveContainer,
   BarChart, Bar, XAxis, Tooltip,
-  LineChart, Line, YAxis, CartesianGrid, Area, AreaChart
+  YAxis, CartesianGrid, Area, AreaChart
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { FiTrendingUp, FiPieChart } from 'react-icons/fi';
@@ -102,7 +102,7 @@ const Reports = () => {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => `₹${value.toLocaleString()}`}
+                        formatter={(value: any) => `₹${Number(value).toLocaleString()}`}
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
                       />
                     </PieChart>
@@ -156,7 +156,7 @@ const Reports = () => {
                     <XAxis dataKey="month" fontSize={11} tickMargin={8} stroke="#94a3b8" />
                     <YAxis fontSize={10} stroke="#94a3b8" tickFormatter={(v) => `₹${(v/1000).toFixed(0)}k`} />
                     <Tooltip
-                      formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Total']}
+                      formatter={(value: any) => [`₹${Number(value).toLocaleString()}`, 'Total']}
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
                     />
                     <Area
@@ -192,7 +192,7 @@ const Reports = () => {
                     <XAxis dataKey="name" fontSize={10} tickMargin={10} stroke="#94a3b8" />
                     <Tooltip
                       cursor={{ fill: 'rgba(0,0,0,0.03)' }}
-                      formatter={(value: number) => `₹${value.toLocaleString()}`}
+                      formatter={(value: any) => `₹${Number(value).toLocaleString()}`}
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
                     />
                     <Bar

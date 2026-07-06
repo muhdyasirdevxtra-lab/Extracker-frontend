@@ -9,7 +9,7 @@ import AccountSelector from '../components/AccountSelector';
 const categories = ['Food', 'Fuel', 'Travel', 'Medical', 'Shopping', 'Bills', 'Entertainment', 'Investment', 'Education', 'Subscription', 'Others'];
 
 const Add = () => {
-  const { register, handleSubmit, setValue } = useForm();
+  const { register, handleSubmit } = useForm();
   const [loading, setLoading] = useState(false);
   const [selectedAccount, setSelectedAccount] = useState<string>('');
   const navigate = useNavigate();
