@@ -6,6 +6,14 @@ import { Link } from 'react-router-dom';
 import { format } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
+import { FiSmartphone, FiDollarSign } from 'react-icons/fi';
+import InsightsCard from '../components/InsightsCard';
+
+const IconMap: Record<string, any> = {
+  FiCreditCard,
+  FiSmartphone,
+  FiDollarSign,
+};
 
 const Home = () => {
   const { user } = useContext(AuthContext);
@@ -119,6 +127,34 @@ const Home = () => {
         </div>
       </motion.div>
 
+      {/* Accounts List (Horizontal Scroll) */}
+      <div className="mb-8">
+        <h3 className="font-bold text-sm text-slate-700 mb-3">Your Accounts</h3>
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
+          {summary?.accounts?.map((account: any, i: number) => {
+            const Icon = IconMap[account.icon] || FiCreditCard;
+            return (
+              <motion.div
+                key={account._id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 + (i * 0.1) }}
+                className="min-w-[140px] bg-white border border-slate-100 rounded-2xl p-4 shadow-sm"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-full" style={{ backgroundColor: `${account.color}15`, color: account.color }}>
+                    <Icon size={16} />
+                  </div>
+                  <p className="font-bold text-slate-700 text-sm">{account.name}</p>
+                </div>
+                <p className="text-xs text-slate-400 mb-0.5">Balance</p>
+                <p className="font-bold text-lg text-slate-800">₹{account.balance.toLocaleString()}</p>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Expense Summary Row */}
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
@@ -142,6 +178,9 @@ const Home = () => {
           <p className="font-bold text-slate-800 text-sm">₹{summary?.monthlyExpense || 0}</p>
         </div>
       </motion.div>
+
+      {/* AI Insights */}
+      <InsightsCard />
 
       {/* Quick Actions */}
       <div className="mb-8 flex justify-between items-center">

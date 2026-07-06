@@ -1,16 +1,28 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
+import { AnimatePresence } from 'framer-motion';
+import PinSetup from '../components/PinSetup';
+import { FiLock } from 'react-icons/fi';
 
 const Settings = () => {
   const [settings, setSettings] = useState<any>({});
   const [loading, setLoading] = useState(true);
+  const [showPinSetup, setShowPinSetup] = useState(false);
+  
+  // Local security state
+  const [pinEnabled, setPinEnabled] = useState(false);
+  const [biometricsEnabled, setBiometricsEnabled] = useState(false);
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
         const { data } = await api.get('/settings');
         setSettings(data);
+        
+        // Load local security settings
+        setPinEnabled(!!localStorage.getItem('extracker_pin'));
+        setBiometricsEnabled(localStorage.getItem('extracker_biometrics') === 'true');
       } catch (error) {
         toast.error('Failed to load settings');
       } finally {
@@ -29,6 +41,24 @@ const Settings = () => {
       toast.error('Failed to update setting');
       setSettings(settings); // revert on error
     }
+  };
+
+  const togglePin = () => {
+    if (pinEnabled) {
+      localStorage.removeItem('extracker_pin');
+      localStorage.removeItem('extracker_biometrics');
+      setPinEnabled(false);
+      setBiometricsEnabled(false);
+      toast.success('App lock disabled');
+    } else {
+      setShowPinSetup(true);
+    }
+  };
+
+  const toggleBiometrics = () => {
+    const newState = !biometricsEnabled;
+    setBiometricsEnabled(newState);
+    localStorage.setItem('extracker_biometrics', String(newState));
   };
 
   if (loading) return <div className="p-6 animate-pulse mt-12 h-64 bg-slate-200 rounded-3xl"></div>;
@@ -90,6 +120,70 @@ const Settings = () => {
           </select>
         </div>
       </div>
+
+      <h2 className="text-xl font-bold text-slate-800 mt-10 mb-6 px-1">Security</h2>
+      
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-50 overflow-hidden mb-10">
+        <div className="p-5 flex justify-between items-center border-b border-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-50 p-2.5 rounded-full text-blue-500">
+              <FiLock size={18} />
+            </div>
+            <div>
+              <p className="font-semibold text-slate-800">App Lock (PIN)</p>
+              <p className="text-xs text-slate-400">Require PIN to open app</p>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="sr-only peer" 
+              checked={pinEnabled}
+              onChange={togglePin} 
+            />
+            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+          </label>
+        </div>
+
+        {pinEnabled && (
+          <>
+            <div className="p-5 flex justify-between items-center border-b border-slate-100">
+              <div>
+                <p className="font-semibold text-slate-800">Change PIN</p>
+              </div>
+              <button onClick={() => setShowPinSetup(true)} className="text-sm font-medium text-primary bg-primary/10 px-4 py-1.5 rounded-lg active:scale-95 transition-transform">
+                Change
+              </button>
+            </div>
+            
+            <div className="p-5 flex justify-between items-center">
+              <div>
+                <p className="font-semibold text-slate-800">Use Biometrics</p>
+                <p className="text-xs text-slate-400">Unlock with fingerprint/FaceID</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input 
+                  type="checkbox" 
+                  className="sr-only peer" 
+                  checked={biometricsEnabled}
+                  onChange={toggleBiometrics} 
+                />
+                <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+              </label>
+            </div>
+          </>
+        )}
+      </div>
+
+      {showPinSetup && (
+        <PinSetup 
+          onClose={() => setShowPinSetup(false)} 
+          onSuccess={() => {
+            setShowPinSetup(false);
+            setPinEnabled(true);
+          }} 
+        />
+      )}
     </div>
   );
 };

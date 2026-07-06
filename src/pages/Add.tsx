@@ -4,18 +4,20 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
+import AccountSelector from '../components/AccountSelector';
 
 const categories = ['Food', 'Fuel', 'Travel', 'Medical', 'Shopping', 'Bills', 'Entertainment', 'Investment', 'Education', 'Subscription', 'Others'];
 
 const Add = () => {
-  const { register, handleSubmit } = useForm();
+  const { register, handleSubmit, setValue } = useForm();
   const [loading, setLoading] = useState(false);
+  const [selectedAccount, setSelectedAccount] = useState<string>('');
   const navigate = useNavigate();
 
   const onSubmit = async (data: any) => {
     setLoading(true);
     try {
-      await api.post('/expenses', data);
+      await api.post('/expenses', { ...data, account: selectedAccount });
       toast.success('Expense added successfully!');
       navigate('/');
     } catch (error: any) {
@@ -38,6 +40,11 @@ const Add = () => {
       <h2 className="text-2xl font-bold text-slate-800 mb-6">Add Expense</h2>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 pb-10">
+        <div>
+          <label className="block text-sm font-medium text-slate-600 mb-2">From Account</label>
+          <AccountSelector value={selectedAccount} onChange={setSelectedAccount} />
+        </div>
+
         <div>
           <label className="block text-sm font-medium text-slate-600 mb-1">Amount (₹)</label>
           <input
@@ -65,24 +72,14 @@ const Add = () => {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">Date</label>
-            <input
-              {...register('date')}
-              type="date"
-              defaultValue={new Date().toISOString().split('T')[0]}
-              className="input-field h-14"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-600 mb-1">Payment</label>
-            <select {...register('paymentMethod')} className="input-field h-14">
-              <option value="Cash">Cash</option>
-              <option value="Card">Card</option>
-              <option value="UPI">UPI</option>
-            </select>
-          </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-600 mb-1">Date</label>
+          <input
+            {...register('date')}
+            type="date"
+            defaultValue={new Date().toISOString().split('T')[0]}
+            className="input-field h-14"
+          />
         </div>
 
         {/* Note: File upload for receipt is omitted for MVP simplicity on mobile, but could be added here */}
