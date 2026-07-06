@@ -1,65 +1,26 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
-import {
-  BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell
-} from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { motion } from 'framer-motion';
-import { FiChevronDown, FiShoppingBag, FiCoffee, FiTrendingDown, FiSmartphone, FiHome, FiHeart, FiMoreHorizontal } from 'react-icons/fi';
+import { FiChevronDown, FiMoreHorizontal } from 'react-icons/fi';
 
-const CategoryIconMap: Record<string, any> = {
-  Food: FiCoffee,
-  Shopping: FiShoppingBag,
-  Transport: FiTrendingDown,
-  Bills: FiSmartphone,
-  Rent: FiHome,
-  Health: FiHeart,
-  Others: FiMoreHorizontal
-};
-
-const CategoryColorMap: Record<string, string> = {
-  Food: '#e4769c',
-  Shopping: '#5c73df',
-  Transport: '#f3b55a',
-  Bills: '#4ade80',
-  Rent: '#a78bfa',
-  Health: '#f43f5e',
-  Others: '#94a3b8'
-};
+const PIE_COLORS = ['#e4769c', '#5c73df', '#f3b55a', '#4ade80', '#a78bfa', '#f43f5e', '#94a3b8'];
 
 const Reports = () => {
   const [summary, setSummary] = useState<any>(null);
-  const [trendData, setTrendData] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [summaryRes, trendRes, chartsRes] = await Promise.all([
+        const [summaryRes, chartsRes] = await Promise.all([
           api.get('/reports/summary'),
-          api.get('/reports/trend'),
           api.get('/reports/charts')
         ]);
         setSummary(summaryRes.data);
         
-        // Map trend data to chart format
-        const mappedTrend = trendRes.data.map((t: any) => ({
-          name: t.month,
-          value: t.total
-        }));
-        setTrendData(mappedTrend);
-
-        // Map chart data to categories with percentages
-        const chartData = chartsRes.data || [];
-        const totalAmount = chartData.reduce((acc: number, curr: any) => acc + curr.value, 0);
-        
-        const mappedCategories = chartData.map((c: any) => ({
-          name: c.name,
-          amount: c.value,
-          percent: totalAmount > 0 ? Math.round((c.value / totalAmount) * 100) : 0,
-          color: CategoryColorMap[c.name] || '#94a3b8'
-        })).sort((a: any, b: any) => b.amount - a.amount);
-
-        setCategories(mappedCategories);
+        const cData = chartsRes.data || [];
+        setChartData(cData.sort((a: any, b: any) => b.value - a.value));
       } catch (error) {
         console.error('Failed to fetch report data', error);
       }
@@ -71,24 +32,28 @@ const Reports = () => {
   const monthlyLimit = summary?.limits?.monthly || 4000;
   const limitPercent = Math.min((monthlyExpense / monthlyLimit) * 100, 100);
 
+  const todayExpense = summary?.todayExpense || 0;
+  const dailyLimit = summary?.limits?.daily || 200;
+  const dailyPercent = Math.min((todayExpense / dailyLimit) * 100, 100);
+
   return (
     <div className="pt-12 px-6 bg-[#f8f9fd] min-h-screen font-sans pb-24">
       {/* App Bar */}
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-bold text-slate-800 tracking-tight">Statistic</h1>
         <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm text-xs font-bold text-slate-700">
-          This month <FiChevronDown size={14} />
+          This cycle <FiChevronDown size={14} />
         </div>
       </div>
 
-      {/* Limit Card */}
+      {/* Monthly Limit Card */}
       <motion.div 
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-br from-[#6881f3] to-[#4b61c9] rounded-[1.25rem] p-5 text-white mb-8 shadow-[0_15px_30px_rgba(92,115,223,0.3)]"
+        className="bg-gradient-to-br from-[#6881f3] to-[#4b61c9] rounded-[1.25rem] p-5 text-white mb-4 shadow-[0_15px_30px_rgba(92,115,223,0.3)]"
       >
         <div className="flex justify-between items-start mb-2">
-          <p className="text-white/80 font-medium text-sm">Total expense</p>
+          <p className="text-white/80 font-medium text-sm">Monthly expense</p>
           <div className="w-8 h-5 bg-white/20 rounded-full flex items-center justify-center">
             <FiMoreHorizontal size={14} />
           </div>
@@ -98,7 +63,7 @@ const Reports = () => {
             ₹{monthlyExpense.toLocaleString()}
           </h2>
           <p className="text-white/60 text-xs font-medium pb-1">
-            / ₹{monthlyLimit.toLocaleString()} per month
+            / ₹{monthlyLimit.toLocaleString()}
           </p>
         </div>
         <div className="h-1.5 w-full bg-white/20 rounded-full overflow-hidden">
@@ -111,105 +76,83 @@ const Reports = () => {
         </div>
       </motion.div>
 
-      {/* Expense Breakdown Chart */}
+      {/* Daily Limit Tracker */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="bg-white rounded-[1.25rem] p-5 border border-slate-100 shadow-sm mb-8"
+      >
+        <div className="flex justify-between items-start mb-2">
+          <p className="text-slate-600 font-bold text-sm">Today's expense</p>
+        </div>
+        <div className="flex items-end gap-2 mb-4">
+          <h2 className="text-2xl font-bold text-slate-800 tracking-tight">
+            ₹{todayExpense.toLocaleString()}
+          </h2>
+          <p className="text-slate-400 text-xs font-bold pb-1">
+            / ₹{dailyLimit.toLocaleString()}
+          </p>
+        </div>
+        <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: `${dailyPercent}%` }}
+            transition={{ duration: 1, ease: 'easeOut' }}
+            className={`h-full rounded-full ${dailyPercent >= 100 ? 'bg-[#ff6b6b]' : 'bg-[#4ade80]'}`}
+          />
+        </div>
+      </motion.div>
+
+      {/* Category Breakdown Donut Chart */}
       <div className="mb-8">
-        <div className="flex justify-between items-end mb-4">
-          <div>
-            <h3 className="text-lg font-bold text-slate-800 leading-tight">Expense Breakdown</h3>
-            <p className="text-sm font-bold text-slate-400">Monthly Trend</p>
-          </div>
-          <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-xs font-bold text-slate-700">
-            Months <FiChevronDown size={14} />
-          </div>
-        </div>
-
-        <div className="h-48 w-full mt-6">
-          {trendData.length > 0 ? (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={trendData} margin={{ top: 15, right: 0, left: -25, bottom: 0 }}>
-                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} dy={10} />
-                <Tooltip
-                  cursor={{ fill: 'rgba(0,0,0,0.02)' }}
-                  formatter={(value: any) => `₹${Number(value).toLocaleString()}`}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-                />
-                <Bar 
-                  dataKey="value" 
-                  radius={[4, 4, 4, 4]} 
-                  barSize={32}
-                >
-                  {trendData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.value > monthlyLimit ? '#ff6b6b' : '#4dc5c4'} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-full w-full flex items-center justify-center text-slate-400 text-sm">
-              No trend data available
-            </div>
-          )}
-        </div>
-        {/* Red limit line mockup */}
-        <div className="relative -mt-[110px] mb-[110px] w-full h-[1px] bg-[#ff6b6b] z-10 flex items-center">
-          <div className="bg-[#ff6b6b] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full absolute -left-2 -top-2">
-            ₹{monthlyLimit}
-          </div>
-        </div>
-      </div>
-
-      {/* Spending Details */}
-      <div>
-        <h3 className="text-lg font-bold text-slate-800 leading-tight">Spending Details</h3>
-        <p className="text-xs font-medium text-slate-400 mb-4">Your expenses are divided into {categories.length} categories</p>
+        <h3 className="text-lg font-bold text-slate-800 leading-tight mb-4">Category Breakdown</h3>
         
-        {categories.length > 0 ? (
-          <>
-            {/* Segmented Progress Bar */}
-            <div className="h-2.5 w-full bg-slate-100 rounded-full flex overflow-hidden mb-2">
-              {categories.map(cat => (
-                <div key={cat.name} style={{ width: `${Math.max(cat.percent, 2)}%`, backgroundColor: cat.color }} className="h-full" />
-              ))}
+        {chartData.length > 0 ? (
+          <div className="bg-white rounded-2xl p-6 border border-slate-100 shadow-sm flex flex-col items-center">
+            <div className="w-48 h-48 mb-6">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Tooltip 
+                    formatter={(value: any) => `₹${Number(value).toLocaleString()}`}
+                    contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', fontSize: '12px', fontWeight: 'bold' }}
+                  />
+                  <Pie
+                    data={chartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={85}
+                    paddingAngle={3}
+                    strokeWidth={0}
+                  >
+                    {chartData.map((_entry: any, index: number) => (
+                      <Cell key={`pie-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
+                    ))}
+                  </Pie>
+                </PieChart>
+              </ResponsiveContainer>
             </div>
-            <div className="flex w-full text-[10px] font-bold text-slate-400 mb-6">
-              {categories.map(cat => (
-                <div key={cat.name} style={{ width: `${Math.max(cat.percent, 2)}%` }} className="text-center truncate px-0.5">
-                  {cat.percent}%
+            
+            <div className="w-full grid grid-cols-2 gap-y-4 gap-x-4">
+              {chartData.map((cat: any, i: number) => (
+                <div key={cat.name} className="flex items-center gap-2">
+                  <div className="w-3.5 h-3.5 rounded-full shrink-0" style={{ backgroundColor: PIE_COLORS[i % PIE_COLORS.length] }}></div>
+                  <div className="flex-1 overflow-hidden">
+                    <p className="text-[11px] text-slate-500 font-bold truncate">{cat.name}</p>
+                    <p className="text-[13px] text-slate-800 font-bold">₹{cat.value.toLocaleString()}</p>
+                  </div>
                 </div>
               ))}
             </div>
-
-            {/* Category Cards */}
-            <div className="grid grid-cols-2 gap-3">
-              {categories.map((cat, i) => {
-                const Icon = CategoryIconMap[cat.name] || FiShoppingBag;
-                return (
-                  <motion.div
-                    key={cat.name}
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-3"
-                  >
-                    <div 
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
-                    >
-                      <Icon size={18} strokeWidth={2.5} />
-                    </div>
-                    <div className="overflow-hidden">
-                      <p className="font-bold text-slate-700 text-xs truncate">{cat.name}</p>
-                      <p className="font-bold text-slate-400 text-xs truncate">-₹{cat.amount.toLocaleString()}</p>
-                    </div>
-                  </motion.div>
-                )
-              })}
-            </div>
-          </>
+          </div>
         ) : (
-          <p className="text-slate-400 text-sm text-center py-6">No expenses this month</p>
+          <p className="text-slate-400 text-sm text-center py-6 bg-white rounded-2xl border border-slate-100 shadow-sm">No expenses this cycle</p>
         )}
       </div>
+
     </div>
   );
 };
