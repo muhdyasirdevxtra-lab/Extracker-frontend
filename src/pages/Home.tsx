@@ -1,7 +1,6 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
-import { Link } from 'react-router-dom';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { motion } from 'framer-motion';
 import { FiSearch, FiChevronDown, FiShoppingBag, FiCoffee, FiTrendingDown, FiSmartphone, FiHome, FiHeart, FiMoreHorizontal } from 'react-icons/fi';
@@ -94,11 +93,11 @@ const Home = () => {
       <div className="flex justify-between items-center mb-6">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 bg-slate-200 rounded-full overflow-hidden border-2 border-white shadow-sm">
-            <img src={`https://ui-avatars.com/api/?name=${user?.name}&background=random`} alt="Avatar" className="w-full h-full object-cover" />
+            <img src={`https://ui-avatars.com/api/?name=${user?.username}&background=random`} alt="Avatar" className="w-full h-full object-cover" />
           </div>
           <div>
             <p className="text-xs text-slate-500 font-medium">Morning</p>
-            <p className="text-sm font-bold text-slate-800">{user?.name?.split(' ')[0]}</p>
+            <p className="text-sm font-bold text-slate-800">{user?.username?.split(' ')[0]}</p>
           </div>
         </div>
         <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg border border-slate-100 shadow-sm text-xs font-bold text-slate-700">

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import {
-  BarChart, Bar, XAxis, Tooltip, ResponsiveContainer
+  BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell
 } from 'recharts';
 import { motion } from 'framer-motion';
 import { FiChevronDown, FiShoppingBag, FiCoffee, FiTrendingDown, FiSmartphone, FiHome, FiHeart, FiMoreHorizontal } from 'react-icons/fi';
@@ -16,16 +16,6 @@ const CategoryIconMap: Record<string, any> = {
   Others: FiMoreHorizontal
 };
 
-const CategoryColorMap: Record<string, string> = {
-  Food: '#e4769c',
-  Shopping: '#5c73df',
-  Transport: '#f3b55a',
-  Bills: '#4ade80',
-  Rent: '#a78bfa',
-  Health: '#f43f5e',
-  Others: '#94a3b8'
-};
-
 const Reports = () => {
   const [summary, setSummary] = useState<any>(null);
   const [trendData, setTrendData] = useState<any[]>([]);
@@ -33,7 +23,7 @@ const Reports = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [summaryRes, trendRes] = await Promise.all([
+        const [summaryRes] = await Promise.all([
           api.get('/reports/summary'),
           api.get('/reports/trend')
         ]);
