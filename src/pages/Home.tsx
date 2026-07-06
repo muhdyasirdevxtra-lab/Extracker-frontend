@@ -145,7 +145,6 @@ const Home = () => {
   };
 
   const isSalaryDay = salaryStatus?.isSalaryDay || false;
-  const monthlyLimit = summary?.limits?.monthly || 4000;
 
   return (
     <div className="pt-12 px-6 bg-[#f8f9fd] min-h-screen font-sans pb-24">
