@@ -16,28 +16,50 @@ const CategoryIconMap: Record<string, any> = {
   Others: FiMoreHorizontal
 };
 
+const CategoryColorMap: Record<string, string> = {
+  Food: '#e4769c',
+  Shopping: '#5c73df',
+  Transport: '#f3b55a',
+  Bills: '#4ade80',
+  Rent: '#a78bfa',
+  Health: '#f43f5e',
+  Others: '#94a3b8'
+};
+
 const Reports = () => {
   const [summary, setSummary] = useState<any>(null);
   const [trendData, setTrendData] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [summaryRes] = await Promise.all([
+        const [summaryRes, trendRes, chartsRes] = await Promise.all([
           api.get('/reports/summary'),
-          api.get('/reports/trend')
+          api.get('/reports/trend'),
+          api.get('/reports/charts')
         ]);
         setSummary(summaryRes.data);
         
-        // Mock weekly data based on trend for the UI
-        const mockWeekly = [
-          { name: 'W1', value: 640 },
-          { name: 'W2', value: 850 },
-          { name: 'W3', value: 622 },
-          { name: 'W4', value: 960 }, // over limit
-          { name: 'W5', value: 732 }
-        ];
-        setTrendData(mockWeekly);
+        // Map trend data to chart format
+        const mappedTrend = trendRes.data.map((t: any) => ({
+          name: t.month,
+          value: t.total
+        }));
+        setTrendData(mappedTrend);
+
+        // Map chart data to categories with percentages
+        const chartData = chartsRes.data || [];
+        const totalAmount = chartData.reduce((acc: number, curr: any) => acc + curr.value, 0);
+        
+        const mappedCategories = chartData.map((c: any) => ({
+          name: c.name,
+          amount: c.value,
+          percent: totalAmount > 0 ? Math.round((c.value / totalAmount) * 100) : 0,
+          color: CategoryColorMap[c.name] || '#94a3b8'
+        })).sort((a: any, b: any) => b.amount - a.amount);
+
+        setCategories(mappedCategories);
       } catch (error) {
         console.error('Failed to fetch report data', error);
       }
@@ -48,15 +70,6 @@ const Reports = () => {
   const monthlyExpense = summary?.monthlyExpense || 0;
   const monthlyLimit = summary?.limits?.monthly || 4000;
   const limitPercent = Math.min((monthlyExpense / monthlyLimit) * 100, 100);
-
-  // Mock category breakdown for segmented bar
-  const categories = [
-    { name: 'Shopping', percent: 25, color: '#a78bfa', amount: 1190 },
-    { name: 'Transport', percent: 15, color: '#e4769c', amount: 867 },
-    { name: 'Food', percent: 10, color: '#f3b55a', amount: 450 },
-    { name: 'Bills', percent: 5, color: '#4ade80', amount: 200 },
-    { name: 'Others', percent: 45, color: '#94a3b8', amount: 1027 },
-  ];
 
   return (
     <div className="pt-12 px-6 bg-[#f8f9fd] min-h-screen font-sans pb-24">
@@ -103,38 +116,44 @@ const Reports = () => {
         <div className="flex justify-between items-end mb-4">
           <div>
             <h3 className="text-lg font-bold text-slate-800 leading-tight">Expense Breakdown</h3>
-            <p className="text-sm font-bold text-slate-400">Limit ₹900 / week</p>
+            <p className="text-sm font-bold text-slate-400">Monthly Trend</p>
           </div>
           <div className="flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg border border-slate-100 text-xs font-bold text-slate-700">
-            Week <FiChevronDown size={14} />
+            Months <FiChevronDown size={14} />
           </div>
         </div>
 
         <div className="h-48 w-full mt-6">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={trendData} margin={{ top: 15, right: 0, left: -25, bottom: 0 }}>
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} dy={10} />
-              <Tooltip
-                cursor={{ fill: 'rgba(0,0,0,0.02)' }}
-                formatter={(value: any) => `₹${Number(value).toLocaleString()}`}
-                contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
-              />
-              <Bar 
-                dataKey="value" 
-                radius={[4, 4, 4, 4]} 
-                barSize={32}
-              >
-                {trendData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.value > 900 ? '#ff6b6b' : '#4dc5c4'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {trendData.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={trendData} margin={{ top: 15, right: 0, left: -25, bottom: 0 }}>
+                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 600 }} dy={10} />
+                <Tooltip
+                  cursor={{ fill: 'rgba(0,0,0,0.02)' }}
+                  formatter={(value: any) => `₹${Number(value).toLocaleString()}`}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}
+                />
+                <Bar 
+                  dataKey="value" 
+                  radius={[4, 4, 4, 4]} 
+                  barSize={32}
+                >
+                  {trendData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.value > monthlyLimit ? '#ff6b6b' : '#4dc5c4'} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="h-full w-full flex items-center justify-center text-slate-400 text-sm">
+              No trend data available
+            </div>
+          )}
         </div>
         {/* Red limit line mockup */}
         <div className="relative -mt-[110px] mb-[110px] w-full h-[1px] bg-[#ff6b6b] z-10 flex items-center">
           <div className="bg-[#ff6b6b] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full absolute -left-2 -top-2">
-            ₹900
+            ₹{monthlyLimit}
           </div>
         </div>
       </div>
@@ -142,48 +161,54 @@ const Reports = () => {
       {/* Spending Details */}
       <div>
         <h3 className="text-lg font-bold text-slate-800 leading-tight">Spending Details</h3>
-        <p className="text-xs font-medium text-slate-400 mb-4">Your expenses are divided into 6 categories</p>
+        <p className="text-xs font-medium text-slate-400 mb-4">Your expenses are divided into {categories.length} categories</p>
         
-        {/* Segmented Progress Bar */}
-        <div className="h-2.5 w-full bg-slate-100 rounded-full flex overflow-hidden mb-2">
-          {categories.map(cat => (
-            <div key={cat.name} style={{ width: `${cat.percent}%`, backgroundColor: cat.color }} className="h-full" />
-          ))}
-        </div>
-        <div className="flex w-full text-[10px] font-bold text-slate-400 mb-6">
-          {categories.map(cat => (
-            <div key={cat.name} style={{ width: `${cat.percent}%` }} className="text-center truncate px-0.5">
-              {cat.percent}%
+        {categories.length > 0 ? (
+          <>
+            {/* Segmented Progress Bar */}
+            <div className="h-2.5 w-full bg-slate-100 rounded-full flex overflow-hidden mb-2">
+              {categories.map(cat => (
+                <div key={cat.name} style={{ width: `${Math.max(cat.percent, 2)}%`, backgroundColor: cat.color }} className="h-full" />
+              ))}
             </div>
-          ))}
-        </div>
+            <div className="flex w-full text-[10px] font-bold text-slate-400 mb-6">
+              {categories.map(cat => (
+                <div key={cat.name} style={{ width: `${Math.max(cat.percent, 2)}%` }} className="text-center truncate px-0.5">
+                  {cat.percent}%
+                </div>
+              ))}
+            </div>
 
-        {/* Category Cards */}
-        <div className="grid grid-cols-2 gap-3">
-          {categories.slice(0, 4).map((cat, i) => {
-            const Icon = CategoryIconMap[cat.name] || FiShoppingBag;
-            return (
-              <motion.div
-                key={cat.name}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.1 }}
-                className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-3"
-              >
-                <div 
-                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
-                >
-                  <Icon size={18} strokeWidth={2.5} />
-                </div>
-                <div className="overflow-hidden">
-                  <p className="font-bold text-slate-700 text-xs truncate">{cat.name}</p>
-                  <p className="font-bold text-slate-400 text-xs truncate">-₹{cat.amount}</p>
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
+            {/* Category Cards */}
+            <div className="grid grid-cols-2 gap-3">
+              {categories.map((cat, i) => {
+                const Icon = CategoryIconMap[cat.name] || FiShoppingBag;
+                return (
+                  <motion.div
+                    key={cat.name}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="bg-white border border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-3"
+                  >
+                    <div 
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
+                    >
+                      <Icon size={18} strokeWidth={2.5} />
+                    </div>
+                    <div className="overflow-hidden">
+                      <p className="font-bold text-slate-700 text-xs truncate">{cat.name}</p>
+                      <p className="font-bold text-slate-400 text-xs truncate">-₹{cat.amount.toLocaleString()}</p>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </>
+        ) : (
+          <p className="text-slate-400 text-sm text-center py-6">No expenses this month</p>
+        )}
       </div>
     </div>
   );

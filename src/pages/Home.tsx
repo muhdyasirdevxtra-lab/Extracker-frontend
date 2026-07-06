@@ -2,8 +2,15 @@ import { useContext, useEffect, useState, useMemo } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
-import { motion } from 'framer-motion';
-import { FiSearch, FiChevronDown, FiShoppingBag, FiCoffee, FiTrendingDown, FiSmartphone, FiHome, FiHeart, FiMoreHorizontal } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
+import { 
+  FiSearch, FiChevronDown, FiShoppingBag, FiCoffee, 
+  FiTrendingDown, FiSmartphone, FiHome, FiHeart, FiMoreHorizontal,
+  FiCreditCard, FiPieChart, FiTrendingUp
+} from 'react-icons/fi';
+import InsightsCard from '../components/InsightsCard';
+import { Link } from 'react-router-dom';
 
 const CategoryIconMap: Record<string, any> = {
   Food: FiCoffee,
@@ -25,26 +32,59 @@ const CategoryColorMap: Record<string, string> = {
   Others: '#94a3b8'
 };
 
+const IconMap: Record<string, any> = {
+  FiCreditCard,
+  FiSmartphone,
+  FiDollarSign: FiSmartphone, // mapping
+};
+
 const Home = () => {
   const { user } = useContext(AuthContext);
   const [summary, setSummary] = useState<any>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
+  
+  // Salary Modal State
+  const [showSalaryModal, setShowSalaryModal] = useState(false);
+  const [salaryInput, setSalaryInput] = useState('');
+  const [submittingSalary, setSubmittingSalary] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const [summaryRes, expensesRes] = await Promise.all([
+        api.get('/reports/summary'),
+        api.get('/expenses?limit=20') // Fetch recent expenses
+      ]);
+      setSummary(summaryRes.data);
+      setExpenses(expensesRes.data.expenses || []);
+    } catch (error) {
+      console.error('Failed to fetch dashboard data', error);
+    }
+  };
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [summaryRes, expensesRes] = await Promise.all([
-          api.get('/reports/summary'),
-          api.get('/expenses?limit=20') // Fetch recent expenses
-        ]);
-        setSummary(summaryRes.data);
-        setExpenses(expensesRes.data.expenses || []);
-      } catch (error) {
-        console.error('Failed to fetch dashboard data', error);
-      }
-    };
     fetchData();
   }, []);
+
+  const handleSalarySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!salaryInput || Number(salaryInput) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
+    
+    setSubmittingSalary(true);
+    try {
+      await api.post('/salary', { amount: Number(salaryInput), month: new Date().toISOString() });
+      toast.success('Salary updated successfully!');
+      setShowSalaryModal(false);
+      setSalaryInput('');
+      fetchData(); // Refresh summary
+    } catch (error) {
+      toast.error('Failed to update salary');
+    } finally {
+      setSubmittingSalary(false);
+    }
+  };
 
   // Group expenses by date
   const groupedExpenses = useMemo(() => {
@@ -117,6 +157,17 @@ const Home = () => {
             <span className="text-2xl mr-1">₹</span>
             {summary ? summary.monthlyExpense.toLocaleString() : '---'}
           </h2>
+          <div className="flex items-center gap-3 mb-2">
+            <div>
+              <p className="text-white/60 text-xs">Total Salary</p>
+              <p className="font-semibold text-sm">₹{(summary?.monthlySalary || 0).toLocaleString()}</p>
+            </div>
+            <div className="h-6 w-[1px] bg-white/20"></div>
+            <div>
+              <p className="text-white/60 text-xs">Total Savings</p>
+              <p className="font-semibold text-sm">₹{(summary?.totalSavings || 0).toLocaleString()}</p>
+            </div>
+          </div>
           <div className="inline-block bg-[#ff6b6b] text-white text-[10px] font-bold px-2.5 py-1 rounded-md">
             +₹240 than last month
           </div>
@@ -127,6 +178,44 @@ const Home = () => {
           <img src="/dashboard_pie.png" alt="3D Pie Chart" className="w-full h-full object-contain drop-shadow-2xl scale-125 translate-x-4" />
         </div>
       </motion.div>
+
+      {/* Accounts List (Horizontal Scroll) */}
+      <div className="mb-8">
+        <h3 className="font-bold text-lg text-slate-800 mb-4">Your Accounts</h3>
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
+          {summary?.accounts?.map((account: any, i: number) => {
+            const Icon = IconMap[account.icon] || FiCreditCard;
+            return (
+              <motion.div
+                key={account._id}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.2 + (i * 0.1) }}
+                className="min-w-[140px] bg-white border border-slate-100 rounded-2xl p-4 shadow-sm"
+              >
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-full" style={{ backgroundColor: `${account.color}15`, color: account.color }}>
+                    <Icon size={16} />
+                  </div>
+                  <p className="font-bold text-slate-700 text-sm">{account.name}</p>
+                </div>
+                <p className="text-xs text-slate-400 mb-0.5">Balance</p>
+                <p className="font-bold text-lg text-slate-800">₹{account.balance.toLocaleString()}</p>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* AI Insights */}
+      <InsightsCard />
+
+      <button 
+        onClick={() => setShowSalaryModal(true)}
+        className="w-full bg-[#5c73df]/10 text-[#5c73df] border border-[#5c73df]/20 p-4 rounded-2xl shadow-sm flex justify-center items-center gap-3 active:scale-95 transition-transform mb-8 font-bold"
+      >
+        Update This Month's Salary
+      </button>
 
       {/* Expense List */}
       <div>
@@ -182,6 +271,55 @@ const Home = () => {
           ))}
         </div>
       </div>
+
+      {/* Salary Modal Overlay */}
+      <AnimatePresence>
+        {showSalaryModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="bg-white rounded-[2rem] p-6 w-full max-w-sm shadow-2xl relative"
+            >
+              <h2 className="text-xl font-bold text-slate-800 mb-2">Update Monthly Salary</h2>
+              <p className="text-sm text-slate-500 mb-6">Enter your received salary for this month. This helps track your remaining balance.</p>
+              
+              <form onSubmit={handleSalarySubmit}>
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-slate-600 mb-1">Received Amount (₹)</label>
+                  <input
+                    type="number"
+                    value={salaryInput}
+                    onChange={(e) => setSalaryInput(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 outline-none font-semibold text-slate-800 focus:border-[#5c73df] text-2xl h-16"
+                    placeholder="0"
+                    autoFocus
+                  />
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowSalaryModal(false)}
+                    className="flex-1 py-4 font-bold text-slate-600 bg-slate-100 rounded-2xl active:scale-95 transition-transform"
+                  >
+                    Not Now
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingSalary}
+                    className="flex-1 py-4 font-bold text-white bg-[#5c73df] rounded-2xl active:scale-95 transition-transform disabled:opacity-70"
+                  >
+                    {submittingSalary ? 'Saving...' : 'Save Salary'}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };
