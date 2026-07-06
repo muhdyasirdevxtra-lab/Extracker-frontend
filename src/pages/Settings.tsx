@@ -66,30 +66,6 @@ const Settings = () => {
     <div className="pt-12 px-6">
       <h1 className="text-2xl font-bold text-slate-800 mb-8">Settings</h1>
 
-      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-50 overflow-hidden">
-        
-        <div className="p-5 flex justify-between items-center border-b border-slate-100">
-          <div>
-            <p className="font-semibold text-slate-800">Push Notifications</p>
-            <p className="text-xs text-slate-400">Receive alerts for budget limits</p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox" 
-              className="sr-only peer" 
-              checked={settings.notificationsEnabled}
-              onChange={(e) => handleToggle('notificationsEnabled', e.target.checked)} 
-            />
-            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-          </label>
-        </div>
-
-        <div className="p-5 flex justify-between items-center border-b border-slate-100">
-          <div>
-            <p className="font-semibold text-slate-800">Dark Mode</p>
-            <p className="text-xs text-slate-400">Switch to dark theme</p>
-          </div>
-          <label className="relative inline-flex items-center cursor-pointer">
       <div className="bg-white rounded-[2rem] shadow-sm border border-slate-50 overflow-hidden mb-10">
         <div className="p-5 border-b border-slate-100 flex flex-col gap-2">
           <label className="font-semibold text-slate-800">Monthly Expense Limit</label>
