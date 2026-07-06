@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import { FiLogOut, FiSettings, FiCreditCard, FiAward } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
