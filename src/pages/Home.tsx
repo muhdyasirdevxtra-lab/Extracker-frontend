@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState, useMemo } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
+import { useNavigate } from 'react-router-dom';
 import { format, isToday, isYesterday, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'react-hot-toast';
@@ -39,8 +40,10 @@ const IconMap: Record<string, any> = {
 
 const Home = () => {
   const { user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [summary, setSummary] = useState<any>(null);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [lastMonthTotal, setLastMonthTotal] = useState(0);
   
   // Salary Modal State
   const [showSalaryModal, setShowSalaryModal] = useState(false);
@@ -49,12 +52,19 @@ const Home = () => {
 
   const fetchData = async () => {
     try {
-      const [summaryRes, expensesRes] = await Promise.all([
+      const [summaryRes, expensesRes, insightsRes] = await Promise.all([
         api.get('/reports/summary'),
-        api.get('/expenses?limit=20') // Fetch recent expenses
+        api.get('/expenses'),
+        api.get('/reports/insights').catch(() => ({ data: { currentMonth: [], lastMonth: [] } }))
       ]);
       setSummary(summaryRes.data);
-      setExpenses(expensesRes.data.expenses || []);
+      // Bug #2 fix: backend returns flat array, not { expenses: [...] }
+      const allExpenses = Array.isArray(expensesRes.data) ? expensesRes.data : (expensesRes.data.expenses || []);
+      setExpenses(allExpenses.slice(0, 20));
+      
+      // Bug #5: Compute real last month total for the badge
+      const lastTotal = (insightsRes.data.lastMonth || []).reduce((s: number, c: any) => s + c.total, 0);
+      setLastMonthTotal(lastTotal);
     } catch (error) {
       console.error('Failed to fetch dashboard data', error);
     }
@@ -73,7 +83,9 @@ const Home = () => {
     
     setSubmittingSalary(true);
     try {
-      await api.post('/salary', { amount: Number(salaryInput), month: new Date().toISOString() });
+      // Bug #1 fix: backend expects { amount, month: 1-12, year: number }
+      const now = new Date();
+      await api.post('/salary', { amount: Number(salaryInput), month: now.getMonth() + 1, year: now.getFullYear() });
       toast.success('Salary updated successfully!');
       setShowSalaryModal(false);
       setSalaryInput('');
@@ -123,7 +135,7 @@ const Home = () => {
           </div>
           <h1 className="text-xl font-bold text-slate-800 tracking-tight">Monety</h1>
         </div>
-        <button className="p-2 text-slate-800">
+        <button className="p-2 text-slate-800" onClick={() => navigate('/expenses')}>
           <FiSearch size={22} strokeWidth={2.5} />
         </button>
       </div>
@@ -167,9 +179,19 @@ const Home = () => {
               <p className="font-semibold text-sm">₹{(summary?.totalSavings || 0).toLocaleString()}</p>
             </div>
           </div>
-          <div className="inline-block bg-[#ff6b6b] text-white text-[10px] font-bold px-2.5 py-1 rounded-md">
-            +₹240 than last month
-          </div>
+          {(() => {
+            const diff = (summary?.monthlyExpense || 0) - lastMonthTotal;
+            if (lastMonthTotal === 0) return null;
+            return diff > 0 ? (
+              <div className="inline-block bg-[#ff6b6b] text-white text-[10px] font-bold px-2.5 py-1 rounded-md">
+                +₹{diff.toLocaleString()} than last month
+              </div>
+            ) : (
+              <div className="inline-block bg-[#4ade80] text-white text-[10px] font-bold px-2.5 py-1 rounded-md">
+                -₹{Math.abs(diff).toLocaleString()} than last month
+              </div>
+            );
+          })()}
         </div>
         
         {/* 3D Illustration */}

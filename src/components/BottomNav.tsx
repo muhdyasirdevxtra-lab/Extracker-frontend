@@ -1,12 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { FiHome, FiPieChart, FiPlus, FiBell, FiUser } from 'react-icons/fi';
+import { FiHome, FiList, FiPlus, FiPieChart, FiUser } from 'react-icons/fi';
 import clsx from 'clsx';
 
 const navItems = [
   { name: 'Home', path: '/', icon: FiHome },
-  { name: 'Reports', path: '/reports', icon: FiPieChart },
+  { name: 'Expenses', path: '/expenses', icon: FiList },
   { name: 'Add', path: '/add', icon: FiPlus, isFab: true },
-  { name: 'Settings', path: '/settings', icon: FiBell }, // using settings page for bell for now
+  { name: 'Reports', path: '/reports', icon: FiPieChart },
   { name: 'Profile', path: '/profile', icon: FiUser },
 ];
 
@@ -16,7 +16,7 @@ const BottomNav = () => {
   return (
     <div className="absolute bottom-0 w-full bg-white border-t border-slate-100 pb-safe pt-2 px-6 flex justify-between items-center z-50 h-20 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
       {navItems.map((item) => {
-        const isActive = location.pathname === item.path || (item.path === '/reports' && location.pathname === '/expenses');
+        const isActive = location.pathname === item.path;
         
         if (item.isFab) {
           return (
