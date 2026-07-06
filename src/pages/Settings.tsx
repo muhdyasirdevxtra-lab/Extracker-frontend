@@ -90,6 +90,84 @@ const Settings = () => {
             <p className="text-xs text-slate-400">Switch to dark theme</p>
           </div>
           <label className="relative inline-flex items-center cursor-pointer">
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-50 overflow-hidden mb-10">
+        <div className="p-5 border-b border-slate-100 flex flex-col gap-2">
+          <label className="font-semibold text-slate-800">Monthly Expense Limit</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₹</span>
+            <input 
+              type="number" 
+              value={settings.monthlyLimit || ''} 
+              onChange={(e) => {
+                const newSettings = { ...settings, monthlyLimit: Number(e.target.value) };
+                setSettings(newSettings);
+              }}
+              onBlur={() => api.put('/settings', { monthlyLimit: settings.monthlyLimit })}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 outline-none font-semibold text-slate-800 focus:border-primary"
+              placeholder="e.g. 4000"
+            />
+          </div>
+        </div>
+
+        <div className="p-5 flex flex-col gap-2 border-b border-slate-100">
+          <label className="font-semibold text-slate-800">Daily Expense Limit</label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium">₹</span>
+            <input 
+              type="number" 
+              value={settings.dailyLimit || ''} 
+              onChange={(e) => {
+                const newSettings = { ...settings, dailyLimit: Number(e.target.value) };
+                setSettings(newSettings);
+              }}
+              onBlur={() => api.put('/settings', { dailyLimit: settings.dailyLimit })}
+              className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 outline-none font-semibold text-slate-800 focus:border-primary"
+              placeholder="e.g. 200"
+            />
+          </div>
+        </div>
+
+        <div className="p-5 flex justify-between items-center border-b border-slate-100">
+          <div>
+            <p className="font-semibold text-slate-800">Currency</p>
+          </div>
+          <select 
+            value={settings.currency || 'INR'} 
+            onChange={(e) => {
+              const newSettings = { ...settings, currency: e.target.value };
+              setSettings(newSettings);
+              api.put('/settings', { currency: e.target.value });
+            }}
+            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 outline-none text-sm font-medium focus:border-primary"
+          >
+            <option value="INR">₹ INR</option>
+            <option value="USD">$ USD</option>
+            <option value="EUR">€ EUR</option>
+          </select>
+        </div>
+
+        <div className="p-5 flex justify-between items-center border-b border-slate-100">
+          <div>
+            <p className="font-semibold text-slate-800">Push Notifications</p>
+            <p className="text-xs text-slate-400">Receive alerts for budget limits</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="sr-only peer" 
+              checked={settings.notificationsEnabled}
+              onChange={(e) => handleToggle('notificationsEnabled', e.target.checked)} 
+            />
+            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+          </label>
+        </div>
+
+        <div className="p-5 flex justify-between items-center">
+          <div>
+            <p className="font-semibold text-slate-800">Dark Mode</p>
+            <p className="text-xs text-slate-400">Switch to dark theme</p>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
             <input 
               type="checkbox" 
               className="sr-only peer" 
@@ -98,25 +176,6 @@ const Settings = () => {
             />
             <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
           </label>
-        </div>
-
-        <div className="p-5 flex justify-between items-center">
-          <div>
-            <p className="font-semibold text-slate-800">Currency</p>
-          </div>
-          <select 
-            value={settings.currency} 
-            onChange={(e) => {
-              const newSettings = { ...settings, currency: e.target.value };
-              setSettings(newSettings);
-              api.put('/settings', newSettings);
-            }}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1 outline-none text-sm font-medium"
-          >
-            <option value="INR">₹ INR</option>
-            <option value="USD">$ USD</option>
-            <option value="EUR">€ EUR</option>
-          </select>
         </div>
       </div>
 
