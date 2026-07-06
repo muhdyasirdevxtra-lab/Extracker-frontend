@@ -7,10 +7,9 @@ import { toast } from 'react-hot-toast';
 import { 
   FiSearch, FiChevronDown, FiShoppingBag, FiCoffee, 
   FiTrendingDown, FiSmartphone, FiHome, FiHeart, FiMoreHorizontal,
-  FiCreditCard, FiPieChart, FiTrendingUp
+  FiCreditCard
 } from 'react-icons/fi';
 import InsightsCard from '../components/InsightsCard';
-import { Link } from 'react-router-dom';
 
 const CategoryIconMap: Record<string, any> = {
   Food: FiCoffee,
