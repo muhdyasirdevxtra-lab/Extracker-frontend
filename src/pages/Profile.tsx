@@ -4,12 +4,21 @@ import { FiLogOut, FiSettings, FiCreditCard, FiAward } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
+import { useEffect } from 'react';
 
 const Profile = () => {
   const { user, logout } = useContext(AuthContext);
   const [showSalaryHistory, setShowSalaryHistory] = useState(false);
   const [salaries, setSalaries] = useState<any[]>([]);
   const [loadingSalaries, setLoadingSalaries] = useState(false);
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    // Fetch stats on load
+    api.get('/reports/summary')
+      .then(res => setStats(res.data))
+      .catch(console.error);
+  }, []);
 
   const fetchSalaries = async () => {
     setLoadingSalaries(true);
@@ -29,12 +38,29 @@ const Profile = () => {
     <div className="pt-12 px-6">
       <h1 className="text-2xl font-bold text-slate-800 mb-8">Profile</h1>
 
-      <div className="flex flex-col items-center mb-10">
-        <div className="w-24 h-24 bg-[#5c73df]/10 rounded-full flex items-center justify-center text-[#5c73df] border-4 border-white shadow-lg mb-4">
+      <div className="flex flex-col items-center mb-8">
+        <div className="w-24 h-24 bg-[#5c73df]/10 rounded-full flex items-center justify-center text-[#5c73df] border-4 border-white shadow-lg mb-4 relative">
           <span className="text-4xl font-bold">{user?.username.charAt(0).toUpperCase()}</span>
+          <div className="absolute bottom-0 right-0 w-6 h-6 bg-[#4ade80] border-2 border-white rounded-full"></div>
         </div>
         <h2 className="text-xl font-bold text-slate-800">{user?.username}</h2>
         <p className="text-slate-500 text-sm">Premium Member</p>
+      </div>
+
+      {/* User Quick Stats */}
+      <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex flex-col items-center justify-center text-center">
+          <p className="text-xs font-bold text-slate-400 mb-1">Total Savings</p>
+          <p className="text-lg font-bold text-[#4dc5c4]">
+            ₹{stats?.totalSavings?.toLocaleString() || 0}
+          </p>
+        </div>
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-50 flex flex-col items-center justify-center text-center">
+          <p className="text-xs font-bold text-slate-400 mb-1">Current Salary</p>
+          <p className="text-lg font-bold text-[#5c73df]">
+            ₹{stats?.monthlySalary?.toLocaleString() || 0}
+          </p>
+        </div>
       </div>
 
       <div className="space-y-4">
