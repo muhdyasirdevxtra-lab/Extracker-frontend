@@ -52,7 +52,6 @@ const Login = () => {
               <input
                 {...register('username', { required: true })}
                 type="text"
-                defaultValue="yasir"
                 placeholder="Username"
                 className="w-full bg-white/10 border border-white/20 rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-white/50 focus:bg-white/20 transition-all text-white placeholder-slate-300"
               />
@@ -65,7 +64,6 @@ const Login = () => {
               <input
                 {...register('password', { required: true })}
                 type="password"
-                defaultValue="shafna"
                 placeholder="Password"
                 className="w-full bg-white/10 border border-white/20 rounded-2xl pl-12 pr-4 py-4 outline-none focus:border-white/50 focus:bg-white/20 transition-all text-white placeholder-slate-300"
               />
