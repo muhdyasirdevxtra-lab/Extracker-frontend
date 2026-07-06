@@ -162,20 +162,25 @@ const Home = () => {
         animate={{ opacity: 1, y: 0 }}
         className="bg-gradient-to-br from-[#6881f3] to-[#4b61c9] rounded-[1.5rem] p-6 text-white mb-8 relative overflow-hidden shadow-[0_15px_30px_rgba(92,115,223,0.3)]"
       >
-        <div className="relative z-10 w-[60%]">
+        <div className="relative z-10 w-[68%]">
           <p className="text-white/80 font-medium mb-1">Expense total</p>
           <h2 className="text-4xl font-bold mb-3 tracking-tight">
             <span className="text-2xl mr-1">₹</span>
             {summary ? summary.monthlyExpense.toLocaleString() : '---'}
           </h2>
-          <div className="flex items-center gap-3 mb-2">
+          <div className="flex items-center gap-2 mb-2">
             <div>
-              <p className="text-white/60 text-xs">Total Salary</p>
+              <p className="text-white/60 text-[10px] uppercase tracking-wider">Salary</p>
               <p className="font-semibold text-sm">₹{(summary?.monthlySalary || 0).toLocaleString()}</p>
             </div>
-            <div className="h-6 w-[1px] bg-white/20"></div>
+            <div className="h-5 w-[1px] bg-white/20"></div>
             <div>
-              <p className="text-white/60 text-xs">Total Savings</p>
+              <p className="text-white/60 text-[10px] uppercase tracking-wider">Available</p>
+              <p className="font-semibold text-sm">₹{((summary?.monthlySalary || 0) - (summary?.monthlyExpense || 0)).toLocaleString()}</p>
+            </div>
+            <div className="h-5 w-[1px] bg-white/20"></div>
+            <div>
+              <p className="text-white/60 text-[10px] uppercase tracking-wider">Savings</p>
               <p className="font-semibold text-sm">₹{(summary?.totalSavings || 0).toLocaleString()}</p>
             </div>
           </div>
